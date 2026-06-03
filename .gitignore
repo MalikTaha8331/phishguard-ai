@@ -1,0 +1,20 @@
+# Data files
+data/raw/
+data/*.csv
+
+# Models
+models/
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
