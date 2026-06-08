@@ -506,7 +506,13 @@
                            placeholder="Enter URL to check e.g. https://example.com"
                            onkeypress="if(event.key==='Enter') checkURL()">
                     <button class="btn-check" onclick="checkURL()" id="check-btn">
-                        SCAN URL
+                        QUICK SCAN
+                    </button>
+                    <button class="btn-check" onclick="deepScan()"
+                            id="deep-btn"
+                            style="background:rgba(157,78,221,0.2);
+                                   border-color:#9d4edd; color:#9d4edd;">
+                        🔬 DEEP SCAN
                     </button>
                 </div>
             </div>
@@ -647,6 +653,83 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('check-btn').disabled    = false;
                 showError('Connection error — make sure server is running!');
+            }
+        }
+
+        async function deepScan() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) { showError('Please enter a URL!'); return; }
+
+            hideResults();
+            document.getElementById('loading').style.display   = 'flex';
+            document.getElementById('deep-btn').disabled       = true;
+            document.getElementById('check-btn').disabled      = true;
+
+            // Show loading message
+            document.querySelector('.loading p').textContent =
+                'DEEP SCANNING... VISITING PAGE... ANALYZING CONTENT...';
+
+            try {
+                const res    = await fetch('/deepscan', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ url })
+                });
+                const result = await res.json();
+
+                document.getElementById('loading').style.display  = 'none';
+                document.getElementById('deep-btn').disabled      = false;
+                document.getElementById('check-btn').disabled     = false;
+                document.querySelector('.loading p').textContent  =
+                    'ANALYZING URL... EXTRACTING FEATURES...';
+
+                if (result.error) { showError(result.error); return; }
+
+                // Show result with extra content analysis info
+                showResult(result);
+
+                // Add content analysis details
+                if (result.content_analysis) {
+                    const ca = result.content_analysis;
+                    const extra = document.createElement('div');
+                    extra.style.cssText =
+                        'margin-top:16px; padding:14px; background:#05050f;' +
+                        'border:1px solid #2d1b69; border-radius:8px;';
+                    extra.innerHTML = `
+                        <div style="font-family:monospace; font-size:0.8rem;
+                                    color:#8888aa; margin-bottom:8px;
+                                    letter-spacing:1px">
+                            DEEP SCAN ANALYSIS
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr;
+                                    gap:8px; font-size:0.85rem;">
+                            <div>Page Title: <span style="color:#00e5ff">
+                                ${ca.title || 'N/A'}</span></div>
+                            <div>ML Result: <span style="color:#00e5ff">
+                                ${result.ml_result?.prediction}
+                                (${result.ml_result?.confidence}%)</span></div>
+                            <div>Login Form: <span style="color:${ca.has_login_form ? '#ff2255' : '#00ff88'}">
+                                ${ca.has_login_form ? 'YES ⚠️' : 'NO ✅'}</span></div>
+                            <div>Brand Impersonation: <span style="color:${ca.brand_impersonation ? '#ff2255' : '#00ff88'}">
+                                ${ca.brand_impersonation ? ca.impersonated_brand?.toUpperCase() + ' ⚠️' : 'NO ✅'}</span></div>
+                            <div>Redirects: <span style="color:#00e5ff">
+                                ${ca.redirect_count}</span></div>
+                            <div>Risk Score: <span style="color:#ffd700">
+                                ${ca.score}/10</span></div>
+                        </div>
+                        ${ca.error ? `<div style="color:#ff2255; margin-top:8px; font-size:0.8rem">
+                            Note: ${ca.error}</div>` : ''}
+                    `;
+                    document.getElementById('result-card')
+                        .querySelector('.result-body')
+                        .appendChild(extra);
+                }
+
+            } catch(e) {
+                document.getElementById('loading').style.display  = 'none';
+                document.getElementById('deep-btn').disabled      = false;
+                document.getElementById('check-btn').disabled     = false;
+                showError('Connection error!');
             }
         }
 
