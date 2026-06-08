@@ -1,18 +1,18 @@
-from ucimlrepo import fetch_ucirepo
 import pandas as pd
+import requests
 import os
 
-os.makedirs('data', exist_ok=True)
+print("Downloading PhishTank data...")
 
-print("Fetching phishing dataset...")
-dataset = fetch_ucirepo(id=327)
+# PhishTank free dataset
+url = "http://data.phishtank.com/data/online-valid.csv"
 
-X = dataset.data.features
-y = dataset.data.targets
-
-df = pd.concat([X, y], axis=1)
-df.to_csv('data/phishing_data.csv', index=False)
-
-print(f"Dataset saved! Shape: {df.shape}")
-print(f"Columns: {list(df.columns)}")
-print(df.head())
+try:
+    df = pd.read_csv(url)
+    print(f"Downloaded {len(df)} phishing URLs!")
+    print(df.columns.tolist())
+    df.to_csv('C:/Users/Malik Taha/phishguard-ai/data/phishtank_data.csv', index=False)
+    print("Saved to data/phishtank_data.csv")
+except Exception as e:
+    print(f"Error: {e}")
+    print("Try downloading manually from https://phishtank.org/developer_info.php")

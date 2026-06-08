@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard AI — Phishing URL Detector</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #05050f;
+            color: #e0e0ff;
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(0,229,255,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(0,255,136,0.04) 0%, transparent 50%);
+        }
+
+        /* ─── Header ──────────────────────────────── */
+        .header {
+            text-align: center;
+            padding: 40px 20px 30px;
+            background: linear-gradient(135deg, #0d0d1f, #051a1f);
+            border-bottom: 1px solid #0a3d40;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00e5ff, #00ff88, #00e5ff);
+            background-size: 200% auto;
+            animation: shimmer 3s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0%   { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #00e5ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #8888aa;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .accuracy-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 18px;
+            background: rgba(0,255,136,0.1);
+            border: 1px solid #00ff88;
+            border-radius: 20px;
+            color: #00ff88;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* ─── Main Container ──────────────────────── */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* ─── Search Box ──────────────────────────── */
+        .search-section {
+            background: #0d0d1f;
+            border: 1px solid #0a3d40;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 30px rgba(0,229,255,0.08);
+        }
+
+        .search-section h2 {
+            font-family: 'Orbitron', monospace;
+            color: #00e5ff;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 14px 18px;
+            background: #05050f;
+            border: 1px solid #0a3d40;
+            border-radius: 10px;
+            color: #e0e0ff;
+            font-size: 1rem;
+            font-family: 'Rajdhani', sans-serif;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .url-input:focus {
+            border-color: #00e5ff;
+            box-shadow: 0 0 12px rgba(0,229,255,0.2);
+        }
+
+        .url-input::placeholder { color: #444466; }
+
+        .btn-check {
+            padding: 14px 30px;
+            background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,255,136,0.1));
+            border: 1px solid #00e5ff;
+            border-radius: 10px;
+            color: #00e5ff;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-check:hover {
+            box-shadow: 0 0 20px rgba(0,229,255,0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-check:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Batch textarea */
+        .batch-area {
+            width: 100%;
+            padding: 14px 18px;
+            background: #05050f;
+            border: 1px solid #0a3d40;
+            border-radius: 10px;
+            color: #e0e0ff;
+            font-size: 0.9rem;
+            font-family: 'Rajdhani', sans-serif;
+            outline: none;
+            resize: vertical;
+            min-height: 100px;
+            display: none;
+        }
+
+        .batch-area:focus { border-color: #00e5ff; }
+
+        .tab-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            padding: 8px 20px;
+            background: transparent;
+            border: 1px solid #0a3d40;
+            border-radius: 6px;
+            color: #8888aa;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: rgba(0,229,255,0.1);
+            border-color: #00e5ff;
+            color: #00e5ff;
+        }
+
+        /* ─── Loading ─────────────────────────────── */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid #0a3d40;
+            border-top: 3px solid #00e5ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading p {
+            color: #8888aa;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+        }
+
+        /* ─── Result Card ─────────────────────────── */
+        .result-card {
+            display: none;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .result-icon { font-size: 3rem; }
+
+        .result-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+        }
+
+        .result-subtitle { font-size: 0.9rem; color: #aaaacc; margin-top: 4px; }
+
+        .confidence-bar-wrap {
+            margin-left: auto;
+            text-align: center;
+        }
+
+        .confidence-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        .confidence-label {
+            font-size: 0.75rem;
+            color: #8888aa;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Colors */
+        .result-safe     { background: #001a0d; border: 1px solid #00ff88; }
+        .result-safe .result-title     { color: #00ff88; }
+        .result-safe .confidence-value { color: #00ff88; }
+
+        .result-phishing { background: #1a0005; border: 1px solid #ff2255; }
+        .result-phishing .result-title     { color: #ff2255; }
+        .result-phishing .confidence-value { color: #ff2255; }
+
+        .result-suspicious { background: #1a1500; border: 1px solid #ffd700; }
+        .result-suspicious .result-title     { color: #ffd700; }
+        .result-suspicious .confidence-value { color: #ffd700; }
+
+        .result-body {
+            padding: 24px 28px;
+            background: #080818;
+            border-top: 1px solid #1a1a2e;
+        }
+
+        /* URL display */
+        .url-display {
+            background: #05050f;
+            border: 1px solid #1a1a2e;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #8888aa;
+            word-break: break-all;
+        }
+
+        /* Indicators */
+        .indicators h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.8rem;
+            color: #8888aa;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .indicator-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255,34,85,0.08);
+            border: 1px solid rgba(255,34,85,0.2);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: #ffaaaa;
+        }
+
+        .no-indicators {
+            padding: 12px;
+            background: rgba(0,255,136,0.05);
+            border: 1px solid rgba(0,255,136,0.2);
+            border-radius: 6px;
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+
+        /* ─── Batch Results ───────────────────────── */
+        .batch-results {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .batch-results h3 {
+            font-family: 'Orbitron', monospace;
+            color: #00e5ff;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .batch-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #0d0d1f;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #1a1a2e;
+        }
+
+        .batch-item.safe     { border-color: rgba(0,255,136,0.3); }
+        .batch-item.phishing { border-color: rgba(255,34,85,0.3); }
+
+        /* ─── Stats Section ───────────────────────── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #0d0d1f;
+            border: 1px solid #0a3d40;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            color: #00e5ff;
+            margin-bottom: 6px;
+        }
+
+        .stat-card p {
+            color: #8888aa;
+            font-size: 0.82rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* ─── How It Works ────────────────────────── */
+        .how-section {
+            background: #0d0d1f;
+            border: 1px solid #0a3d40;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .how-section h2 {
+            font-family: 'Orbitron', monospace;
+            color: #00e5ff;
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+        }
+
+        .steps-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .step-item {
+            text-align: center;
+            padding: 16px;
+            background: #080818;
+            border-radius: 10px;
+            border: 1px solid #0a3d40;
+        }
+
+        .step-icon { font-size: 2rem; margin-bottom: 10px; }
+
+        .step-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.75rem;
+            color: #00e5ff;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .step-desc { font-size: 0.82rem; color: #8888aa; }
+
+        /* ─── Footer ──────────────────────────────── */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #444466;
+            font-size: 0.82rem;
+            border-top: 1px solid #0a3d40;
+            letter-spacing: 1px;
+        }
+
+        /* ─── Error Box ───────────────────────────── */
+        .error-box {
+            display: none;
+            background: rgba(255,34,85,0.1);
+            border: 1px solid #ff2255;
+            border-radius: 8px;
+            padding: 14px;
+            color: #ff6b8a;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>🎣 PhishGuard AI</h1>
+        <p>AI-Powered Phishing URL Detection System</p>
+        <div class="accuracy-badge">✅ 97.42% Accuracy | Random Forest ML</div>
+    </div>
+
+    <div class="container">
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <h2>97.42%</h2>
+                <p>Model Accuracy</p>
+            </div>
+            <div class="stat-card">
+                <h2>30</h2>
+                <p>URL Features Analyzed</p>
+            </div>
+            <div class="stat-card">
+                <h2>11,055</h2>
+                <p>URLs Trained On</p>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <h2>🔍 Check URL Safety</h2>
+
+            <!-- Tabs -->
+            <div class="tab-row">
+                <button class="tab-btn active" onclick="switchTab('single')">
+                    Single URL
+                </button>
+                <button class="tab-btn" onclick="switchTab('batch')">
+                    Batch Check (up to 10)
+                </button>
+            </div>
+
+            <!-- Single URL -->
+            <div id="single-input">
+                <div class="input-row">
+                    <input type="text" class="url-input" id="url-input"
+                           placeholder="Enter URL to check e.g. https://example.com"
+                           onkeypress="if(event.key==='Enter') checkURL()">
+                    <button class="btn-check" onclick="checkURL()" id="check-btn">
+                        SCAN URL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Batch URLs -->
+            <div id="batch-input" style="display:none">
+                <textarea class="batch-area" id="batch-textarea"
+                          placeholder="Enter one URL per line&#10;https://example1.com&#10;https://example2.com"
+                          style="display:block"></textarea>
+                <br>
+                <button class="btn-check" onclick="checkBatch()">
+                    SCAN ALL URLs
+                </button>
+            </div>
+
+            <!-- Error -->
+            <div class="error-box" id="error-box"></div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>ANALYZING URL... EXTRACTING FEATURES...</p>
+        </div>
+
+        <!-- Single Result -->
+        <div class="result-card" id="result-card">
+            <div class="result-header">
+                <div class="result-icon" id="result-icon"></div>
+                <div>
+                    <div class="result-title" id="result-title"></div>
+                    <div class="result-subtitle" id="result-subtitle"></div>
+                </div>
+                <div class="confidence-bar-wrap">
+                    <div class="confidence-value" id="confidence-value"></div>
+                    <div class="confidence-label">Confidence</div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="url-display" id="url-display"></div>
+                <div class="indicators">
+                    <h3>⚠️ SUSPICIOUS INDICATORS</h3>
+                    <div id="indicators-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Results -->
+        <div class="batch-results" id="batch-results">
+            <h3>BATCH SCAN RESULTS</h3>
+            <div id="batch-list"></div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="how-section">
+            <h2>⚙️ HOW IT WORKS</h2>
+            <div class="steps-row">
+                <div class="step-item">
+                    <div class="step-icon">🔗</div>
+                    <div class="step-title">Input URL</div>
+                    <div class="step-desc">Enter any URL you want to verify</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-icon">🔬</div>
+                    <div class="step-title">Extract Features</div>
+                    <div class="step-desc">30 features extracted from URL structure</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-icon">🤖</div>
+                    <div class="step-title">AI Analysis</div>
+                    <div class="step-desc">Random Forest model analyzes patterns</div>
+                </div>
+                <div class="step-item">
+                    <div class="step-icon">🛡️</div>
+                    <div class="step-title">Result</div>
+                    <div class="step-desc">Safe or Phishing with confidence score</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        PhishGuard AI — Built with Python, Flask & Scikit-learn |
+        97.42% Accuracy on UCI Phishing Dataset
+    </div>
+
+    <script>
+        let currentTab = 'single';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                b.classList.toggle('active', (i === 0 && tab === 'single') || (i === 1 && tab === 'batch'));
+            });
+            document.getElementById('single-input').style.display = tab === 'single' ? 'block' : 'none';
+            document.getElementById('batch-input').style.display  = tab === 'batch'  ? 'block' : 'none';
+            hideResults();
+        }
+
+        function hideResults() {
+            document.getElementById('result-card').style.display    = 'none';
+            document.getElementById('batch-results').style.display  = 'none';
+            document.getElementById('error-box').style.display      = 'none';
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('error-box');
+            box.textContent    = '⚠️ ' + msg;
+            box.style.display  = 'block';
+        }
+
+        async function checkURL() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) { showError('Please enter a URL!'); return; }
+
+            hideResults();
+            document.getElementById('loading').style.display   = 'flex';
+            document.getElementById('check-btn').disabled      = true;
+
+            try {
+                const res    = await fetch('/check', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ url })
+                });
+                const result = await res.json();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('check-btn').disabled    = false;
+
+                if (result.error) { showError(result.error); return; }
+
+                showResult(result);
+
+            } catch(e) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('check-btn').disabled    = false;
+                showError('Connection error — make sure server is running!');
+            }
+        }
+
+        function showResult(result) {
+            const card = document.getElementById('result-card');
+
+            // Set class
+            card.className = 'result-card result-' +
+                (result.safe ? 'safe' : result.risk === 'SUSPICIOUS' ? 'suspicious' : 'phishing');
+
+            document.getElementById('result-icon').textContent      = result.icon;
+            document.getElementById('result-title').textContent     = result.risk;
+            document.getElementById('result-subtitle').textContent  = result.prediction + ' — ' + result.url;
+            document.getElementById('confidence-value').textContent = result.confidence + '%';
+            document.getElementById('url-display').textContent      = result.url;
+
+            // Indicators
+            const list = document.getElementById('indicators-list');
+            if (result.indicators && result.indicators.length > 0) {
+                list.innerHTML = result.indicators
+                    .map(i => `<div class="indicator-item">⚠️ ${i}</div>`)
+                    .join('');
+            } else {
+                list.innerHTML = '<div class="no-indicators">✅ No suspicious indicators found!</div>';
+            }
+
+            card.style.display = 'block';
+        }
+
+        async function checkBatch() {
+            const text = document.getElementById('batch-textarea').value.trim();
+            if (!text) { showError('Please enter at least one URL!'); return; }
+
+            const urls = text.split('\n').filter(u => u.trim());
+            if (urls.length === 0) { showError('No valid URLs found!'); return; }
+
+            hideResults();
+            document.getElementById('loading').style.display = 'flex';
+
+            try {
+                const res     = await fetch('/batch', {
+                    method:   'POST',
+                    headers:  { 'Content-Type': 'application/json' },
+                    body:     JSON.stringify({ urls })
+                });
+                const results = await res.json();
+
+                document.getElementById('loading').style.display = 'none';
+
+                if (results.error) { showError(results.error); return; }
+
+                showBatchResults(results);
+
+            } catch(e) {
+                document.getElementById('loading').style.display = 'none';
+                showError('Connection error!');
+            }
+        }
+
+        function showBatchResults(results) {
+            const container = document.getElementById('batch-list');
+            container.innerHTML = '';
+
+            results.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'batch-item ' + (r.safe ? 'safe' : 'phishing');
+                div.innerHTML = `
+                    <span style="font-size:1.5rem">${r.icon}</span>
+                    <div style="flex:1">
+                        <div style="font-weight:bold; color:${r.safe ? '#00ff88' : '#ff2255'}">${r.risk}</div>
+                        <div style="font-size:0.82rem; color:#8888aa; word-break:break-all">${r.url}</div>
+                    </div>
+                    <div style="font-family:monospace; color:#00e5ff">${r.confidence}%</div>
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('batch-results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
